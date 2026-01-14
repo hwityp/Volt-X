@@ -68,7 +68,9 @@ def main():
     hot_symbols: List[str] = []
     current_regime = "FLAT"
     last_universe_update = datetime.min
+    last_universe_update = datetime.min
     last_regime_update = datetime.min
+    last_sell_times = {} # Track last sell time for cooldown
     
     # Loop
     try:
@@ -118,6 +120,13 @@ def main():
                         
                         # Execute
                         if signal.action == "BUY":
+                            # Cooldown Check: 1 Hour
+                            if symbol in last_sell_times:
+                                last_sell = last_sell_times[symbol]
+                                if (now - last_sell).total_seconds() < 3600:
+                                    logger.info(f"Signal Blocked: Cooldown for {symbol} (Last Sell: {last_sell.strftime('%H:%M')})")
+                                    continue
+
                             st_type = "VBS" if isinstance(strategy, VolatilityBreakoutStrategy) else "DIP"
                             strategy_name = f"VOLTX_{st_type}" # e.g. VOLTX_DIP
                             
@@ -145,7 +154,8 @@ def main():
                      if pnl_pct < -0.015:
                          logger.info(f"Hard SL Triggered for {s} (PnL: {pnl_pct:.2%})")
                          sl_sig = type("Signal", (), {"action": "SL", "symbol": s, "price": p, "reason": "Hard SL"})
-                         trader.execute_signal(sl_sig, p, current_regime, "L1", pos.strategy_name)
+                         if trader.execute_signal(sl_sig, p, current_regime, "L1", pos.strategy_name):
+                             last_sell_times[s] = datetime.now()
                      
                      else:
                          # Strategy Specific Exit
@@ -156,14 +166,16 @@ def main():
                              if p < ts_price:
                                  logger.info(f"Trailing Stop Triggered for {s} (High: {pos.highest_price}, Now: {p})")
                                  ts_sig = type("Signal", (), {"action": "TP", "symbol": s, "price": p, "reason": f"Trailing Stop (High {pos.highest_price})"})
-                                 trader.execute_signal(ts_sig, p, current_regime, "L1", pos.strategy_name)
+                                 if trader.execute_signal(ts_sig, p, current_regime, "L1", pos.strategy_name):
+                                     last_sell_times[s] = datetime.now()
                          
                          else:
                              # DIP / Others: Fixed TP (+5%)
                              if pnl_pct > 0.05:
                                  logger.info(f"TP Triggered for {s} (PnL: {pnl_pct:.2%})")
                                  tp_sig = type("Signal", (), {"action": "TP", "symbol": s, "price": p, "reason": "Fixed TP"})
-                                 trader.execute_signal(tp_sig, p, current_regime, "L1", pos.strategy_name)
+                                 if trader.execute_signal(tp_sig, p, current_regime, "L1", pos.strategy_name):
+                                     last_sell_times[s] = datetime.now()
 
                  trader.update_positions(current_price_map)
 
