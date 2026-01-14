@@ -75,8 +75,8 @@ def main():
         while True:
             now = datetime.now()
             
-            # 2. Update Universe (Daily at 09:10 or if empty)
-            if not hot_symbols or (now.hour == 9 and now.minute == 10 and (now - last_universe_update).total_seconds() > 3600):
+            # 2. Update Universe (Hourly)
+            if not hot_symbols or (now - last_universe_update).total_seconds() > 3600:
                 logger.info("Updating Universe...")
                 hot_symbols = universe.get_top_movers(limit=10)
                 last_universe_update = now
