@@ -1,2 +1,0 @@
-timestamp,symbol,strategy,tier,regime,side,size,entry_price,exit_price,gross_pnl_pct,net_pnl_pct,fees_slippage,reason
-2026-01-14 13:40:32,KRW-BERA,VOLTX_DIP,L1,BULL,long,334547,1030.0,1014.0,-0.0155,-0.0170,493.8599,Hard SL
