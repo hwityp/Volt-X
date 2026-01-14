@@ -1,0 +1,28 @@
+# Security
+.env
+api_keys.json
+secrets.yaml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Logs and Reports
+logs/
+*.log
+reports/
+*.csv
+
+# Data
+data/
+*.json
+*.pkl
+
+# IDE
+.vscode/
+.idea/
