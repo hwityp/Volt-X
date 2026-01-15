@@ -80,15 +80,15 @@ class DipStrategy(StrategyBase):
         recent_high = df_3m['high'].iloc[-20:].max()
         drop_pct = (recent_high - close) / recent_high
         
-        drop_threshold = 0.015
+        drop_threshold = 0.025 # Default strict
         if regime == "BULL": 
-            drop_threshold = 0.012
-            rsi_threshold = 55
+            drop_threshold = 0.025 # Tightened from 1.2%
+            rsi_threshold = 40     # Tightened from 55
         elif regime == "FLAT":
-            drop_threshold = 0.025 # Stricter in FLAT
-            rsi_threshold = 40     # Deep oversold only
+            drop_threshold = 0.030 # Stricter in FLAT (was 2.5%)
+            rsi_threshold = 35     # Deep oversold only (was 40)
         else: # BEAR
-            drop_threshold = 0.030
+            drop_threshold = 0.035
             rsi_threshold = 30
         
         if drop_pct < drop_threshold:
