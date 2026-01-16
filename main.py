@@ -165,9 +165,9 @@ def main():
                      else:
                          # Strategy Specific Exit
                          if pos.strategy_name == "VOLTX_VBS":
-                             # VBS: Trailing Stop (Highest - 3%) - Loosened from 2%
-                             # Note: pos.highest_price is updated below in trader.update_positions
-                             ts_price = pos.highest_price * 0.97
+                             # VBS: Tight Trailing Stop (Highest - 1.2%)
+                             # Goal: Secure profit in "Pump & Dump" and avoid Hard SL after small rise.
+                             ts_price = pos.highest_price * 0.988
                              if p < ts_price:
                                  logger.info(f"Trailing Stop Triggered for {s} (High: {pos.highest_price}, Now: {p})")
                                  ts_sig = type("Signal", (), {"action": "TP", "symbol": s, "price": p, "reason": f"Trailing Stop (High {pos.highest_price})"})
