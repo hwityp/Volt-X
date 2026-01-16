@@ -188,13 +188,22 @@ class VolatilityBreakoutStrategy(StrategyBase):
             if current_price < sma120:
                 return None
             
-            # 3. Breakout Check
+            # 3. Bollinger Band Breakout Confirmation (New in Proto 1.3)
+            # Ensure price is essentially at or above the Upper Band (Expansion Phase)
+            _, upper, _ = calculate_bollinger_bands(df_3m['close'], 20, 2.0)
+            bb_upper = upper.iloc[-1]
+            
+            # Allow slight tolerance (0.5%) below upper band to catch breakout early
+            if current_price < bb_upper * 0.995:
+                 return None
+
+            # 4. Breakout Check
             if current_price >= target_price:
-                # 4. Filter: Don't chase if too high (> 3% above target)
+                # 5. Filter: Don't chase if too high (> 3% above target)
                 if current_price > target_price * 1.03:
                     return None
                     
-                # 5. RSI Filter (Optional safety)
+                # 6. RSI Filter (Optional safety)
                 rsi = calculate_rsi(df_3m['close'], 14).iloc[-1]
                 if rsi > 75: 
                     return None

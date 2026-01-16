@@ -61,7 +61,7 @@ def main():
     
     strategies = [
         DipStrategy(client),
-        # VolatilityBreakoutStrategy(client) # DISABLED: High failure rate in current market.
+        VolatilityBreakoutStrategy(client)
     ]
     
     # State Variables
