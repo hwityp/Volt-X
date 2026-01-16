@@ -152,16 +152,27 @@ class VolatilityBreakoutStrategy(StrategyBase):
         scanner_status: str
     ) -> Optional[Signal]:
         
-        # 1. Active Filter: Only trade if volume is active (Scanner)
-        if scanner_status != "TREND_ACTIVE":
-            if scanner_status != "CLIMAX_DETECTED": # Climax sometimes worth checking if not exhausted
-                pass # But mostly we want active trend
-            if scanner_status == "EXHAUSTED":
-                return None
-            if scanner_status == "NORMAL":
-                return None
+        # 1. Regime Filter (New in Proto 1.5)
+        # VBS is a "Trend Following" strategy. It fails in Chop/Bear.
+        # Strict Rule: Only trade VBS in BULL market.
+        if regime != "BULL":
+            return None
 
-        # 2. Need Daily Data for VBS
+        # 2. Active Filter: Only trade if volume is active (Scanner)
+        if scanner_status != "TREND_ACTIVE":
+             if scanner_status == "EXHAUSTED": return None
+             if scanner_status == "NORMAL": return None
+
+        # 3. Multi-Timeframe Trend Filter (New in Proto 1.5)
+        # Ensure 15m trend is UP (Price > 15m SMA 20)
+        if df_15m.empty or len(df_15m) < 20:
+            return None
+            
+        sma20_15m = calculate_sma(df_15m['close'], 20).iloc[-1]
+        if df_15m['close'].iloc[-1] < sma20_15m:
+            return None
+
+        # 4. Need Daily Data for VBS
         try:
             # We fetch 2 days of daily candles to get Prev Close/Range and Current Open
             end = datetime.now()
