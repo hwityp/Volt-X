@@ -61,7 +61,7 @@ def main():
     
     strategies = [
         DipStrategy(client),
-        VolatilityBreakoutStrategy(client)
+        # VolatilityBreakoutStrategy(client) # DISABLED: High failure rate in current market.
     ]
     
     # State Variables
@@ -75,6 +75,11 @@ def main():
     # Loop
     try:
         while True:
+            # 0. Safety Check
+            if risk_manager.is_trading_halted:
+                logger.critical("🚨 Circuit Breaker Triggered (Trading HALTED). Auto-Shutdown Initiated.")
+                break
+
             now = datetime.now()
             
             # 2. Update Universe (Hourly)
