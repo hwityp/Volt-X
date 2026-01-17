@@ -61,16 +61,16 @@ class DipStrategy(StrategyBase):
             if scanner_status == "EXHAUSTED":
                 return None # Don't buy exhausted
                 
-        # 0. Macro Trend Filter (New in Proto 1.6)
-        # Only buy DIPs if 15m Trend is UP (Price > 15m SMA 60)
-        # This prevents catching falling knives in a crash.
-        if df_15m.empty or len(df_15m) < 60:
+        # 0. Macro Trend Filter (Relaxed in Proto 1.7)
+        # Only buy DIPs if 15m Trend is UP (Price > 15m SMA 20)
+        # Changed from SMA 60 to SMA 20 to catch faster pullbacks.
+        if df_15m.empty or len(df_15m) < 20:
              return None
         
-        sma60_15m = calculate_sma(df_15m['close'], 60).iloc[-1]
+        sma20_15m = calculate_sma(df_15m['close'], 20).iloc[-1]
         current_price_15m = df_15m['close'].iloc[-1]
         
-        if current_price_15m < sma60_15m:
+        if current_price_15m < sma20_15m:
             return None # Trend is Down/Flat, don't risk it.
                 
         # Use 3m for precise entry
@@ -164,10 +164,11 @@ class VolatilityBreakoutStrategy(StrategyBase):
         scanner_status: str
     ) -> Optional[Signal]:
         
-        # 1. Regime Filter (New in Proto 1.5)
-        # VBS is a "Trend Following" strategy. It fails in Chop/Bear.
-        # Strict Rule: Only trade VBS in BULL market.
-        if regime != "BULL":
+        # 1. Regime Filter (Relaxed in Proto 1.7)
+        # VBS is a "Trend Following" strategy.
+        # Now enabled in FLAT because Smart Universe filters bad coins.
+        # Only disable in explicit BEAR market.
+        if regime == "BEAR":
             return None
 
         # 2. Active Filter: Only trade if volume is active (Scanner)
