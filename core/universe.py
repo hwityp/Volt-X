@@ -109,6 +109,15 @@ class UniverseSelector:
             if pd.isna(volatility):
                 volatility = 0.0
                 
+            # Trend Filter (New in Proto 1.6)
+            # Filter out coins trading BELOW 24h SMA (Downtrend / Panic Sell)
+            sma24 = recent['close'].mean()
+            current_price = recent['close'].iloc[-1]
+            
+            if current_price < sma24:
+                # logger.info(f"Skipping {m}: Downtrend (Price {current_price} < SMA24 {sma24:.1f})")
+                continue
+
             # Score = Volume(KRW) * Volatility
             # Normalize volume to avoid it dominating too much? 
             # User said: score = 24h volume * vol_24h
@@ -128,6 +137,62 @@ class UniverseSelector:
         logger.info(f"Selected Top {limit} Movers:")
         for rank, c in enumerate(top_n, 1):
             logger.info(f"{rank}. {c['market']} (Score: {c['score']:.2e}, Vol: {c['volatility']:.4f})")
+            
+        return [c['market'] for c in top_n]
+
+    def get_weekly_gainers(self, limit: int = 10) -> List[str]:
+        """
+        Get Top N symbols by Weekly Rise (7-day change)
+        """
+        logger.info("Scanning for Weekly Top Gainers...")
+        markets = self.client.get_krw_markets()
+        candidates = []
+        end = datetime.now()
+        # Start enough back to get at least one weekly candle
+        start = end - timedelta(days=14) 
+        
+        # Optimize: Fetch ticker first to filter low volume? 
+        # User wants "Trends" -> Top Gainers. Low vol might be risky but is technically a gainer.
+        # Let's adhere to "Trends" page which usually sorts by change rate.
+        # We can still apply minimum volume blacklist.
+        
+        for m in markets:
+            if m in self.blacklist: continue
+            
+            # Fetch 1w candle
+            # Note: Upbit 'weeks' candle returns current week. 
+            # We want current weekly performance.
+            try:
+                df = self.client.fetch_ohlcv(m, '1w', start, end)
+                if df.empty: continue
+                
+                # Latest candle
+                last = df.iloc[-1]
+                
+                # If the week just started, it might be small data. 
+                # Upbit Trend is usually 1W change.
+                # Change = (Close - Open) / Open
+                change = (last['close'] - last['open']) / last['open']
+                
+                # Filter inactive?
+                if last['volume'] * last['close'] < 100_000_000: # Min 100M KRW weekly vol
+                    continue
+                    
+                candidates.append({
+                    'market': m,
+                    'change': change,
+                    'close': last['close']
+                })
+            except Exception as e:
+                logger.error(f"Weekly fetch failed for {m}: {e}")
+                
+        # Sort by Change Descending
+        candidates.sort(key=lambda x: x['change'], reverse=True)
+        top_n = candidates[:limit]
+        
+        logger.info(f"Selected Weekly Top {limit}:")
+        for rank, c in enumerate(top_n, 1):
+            logger.info(f"{rank}. {c['market']} (Change: {c['change']:.2%})")
             
         return [c['market'] for c in top_n]
 

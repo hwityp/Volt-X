@@ -61,6 +61,18 @@ class DipStrategy(StrategyBase):
             if scanner_status == "EXHAUSTED":
                 return None # Don't buy exhausted
                 
+        # 0. Macro Trend Filter (New in Proto 1.6)
+        # Only buy DIPs if 15m Trend is UP (Price > 15m SMA 60)
+        # This prevents catching falling knives in a crash.
+        if df_15m.empty or len(df_15m) < 60:
+             return None
+        
+        sma60_15m = calculate_sma(df_15m['close'], 60).iloc[-1]
+        current_price_15m = df_15m['close'].iloc[-1]
+        
+        if current_price_15m < sma60_15m:
+            return None # Trend is Down/Flat, don't risk it.
+                
         # Use 3m for precise entry
         if df_3m.empty or len(df_3m) < 30:
             return None
