@@ -27,12 +27,14 @@ from core.regime import RegimeAnalyzer
 from core.scanner import VolumeScanner
 from core.risk import RiskManager
 from core.strategy import DipStrategy, VolatilityBreakoutStrategy
+from core.strategy_fib import FibonacciMorningStrategy
 from core.trader import VoltxTrader
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["dry-run", "live"], default="dry-run")
     parser.add_argument("--run-id", type=str, help="Custom Run ID for logs and reports", default=None)
+    parser.add_argument("--strategy", choices=["classic", "fib", "all"], default="classic", help="Select Strategy Mode")
     args = parser.parse_args()
     
     # Setup Logger with Run ID
@@ -46,7 +48,7 @@ def main():
     from infra.logger import setup_logger
     logger = setup_logger(run_id=args.run_id)
     
-    logger.info(f"Starting VOLT-X in [{args.mode.upper()}] mode | Run ID: {args.run_id}")
+    logger.info(f"Starting VOLT-X in [{args.mode.upper()}] mode | Strategy: {args.strategy.upper()} | Run ID: {args.run_id}")
     load_env()
     
     # 1. Initialize Modules
@@ -59,10 +61,15 @@ def main():
     
     trader = VoltxTrader(client, risk_manager, mode="paper" if args.mode == "dry-run" else "live", run_id=args.run_id)
     
-    strategies = [
-        DipStrategy(client),
-        VolatilityBreakoutStrategy(client)
-    ]
+    strategies = []
+    if args.strategy in ["classic", "all"]:
+        strategies.append(DipStrategy(client))
+        strategies.append(VolatilityBreakoutStrategy(client))
+    
+    if args.strategy in ["fib", "all"]:
+        strategies.append(FibonacciMorningStrategy(client))
+        
+    logger.info(f"Active Strategies: {[s.__class__.__name__ for s in strategies]}")
     
     # State Variables
     hot_symbols: List[str] = []
